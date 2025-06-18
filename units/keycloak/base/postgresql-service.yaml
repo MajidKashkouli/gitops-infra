@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  namespace: keycloak
+  labels:
+    app: postgresql
+    component: database
+spec:
+  type: ClusterIP  # Internal service (not exposed outside cluster)
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: postgresql  # Routes traffic to pods with this label
+
+#What this does:
+
+#Service: Provides stable network endpoint for PostgreSQL
+#ClusterIP: Internal only (database shouldn't be accessible from outside)
+#Selector: Routes traffic to PostgreSQL pods
+#Why needed: Pod IPs change when pods restart, service IP stays the same

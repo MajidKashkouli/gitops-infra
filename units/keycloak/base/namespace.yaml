@@ -1,0 +1,11 @@
+#Namespace: Creates a separate space in Kubernetes for Keycloak
+#Labels: Adds metadata for organization and selection
+#Why separate namespace: Isolates Keycloak from other applications
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  labels:
+    name: keycloak
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/component: identity-provider

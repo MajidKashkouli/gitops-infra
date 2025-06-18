@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresql
+  namespace: keycloak
+  labels:
+    app: postgresql
+    component: database
+spec:
+  replicas: 1  # Single instance (databases don't typically scale horizontally)
+  strategy:
+    type: Recreate  # Ensures only one instance at a time
+  selector:
+    matchLabels:
+      app: postgresql
+  template:
+    metadata:
+      labels:
+        app: postgresql
+    spec:
+      securityContext:
+        fsGroup: 999  # PostgreSQL user group
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine  # Alpine for smaller image size
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgres
+          protocol: TCP
+        env:
+        # Database configuration from ConfigMap
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgresql-config
+              key: POSTGRES_DB
+        - name: PGDATA
+          valueFrom:
+            configMapKeyRef:
+              name: postgresql-config
+              key: PGDATA
+        # Sensitive data from Secret
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: postgres-password
+        volumeMounts:
+        - name: postgresql-storage
+          mountPath: /var/lib/postgresql/data
+        # Resource limits to prevent one pod from using all cluster resources
+        resources:
+          limits:
+            cpu: 1000m    # 1 CPU core maximum
+            memory: 2Gi   # 2GB RAM maximum
+          requests:
+            cpu: 250m     # 0.25 CPU cores guaranteed
+            memory: 512Mi # 512MB RAM guaranteed
+        # Health checks
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+      volumes:
+      - name: postgresql-storage
+        persistentVolumeClaim:
+          claimName: postgresql-pvc
+
+#Key concepts explained:
+
+#Deployment: Manages PostgreSQL pods
+#replicas: 1: Only one database instance
+#Health probes: Kubernetes checks if database is healthy
+#Resource limits: Prevents database from using all cluster resources
+#Volume mounts: Connects persistent storage to container
+
+#Health Probes Explained:
+
+#livenessProbe: Kubernetes restarts the pod if this fails
+#readinessProbe: Kubernetes doesn't send traffic if this fails
+#pg_isready: PostgreSQL command to check if database is ready

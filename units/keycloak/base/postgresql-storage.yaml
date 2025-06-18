@@ -1,0 +1,20 @@
+#PersistentVolumeClaim (PVC): Requests storage from Kubernetes
+#ReadWriteOnce: Storage can only be mounted by one node (good for databases)
+#StorageClassName: Specifies AWS EBS storage type
+#20Gi: Allocates 20 gigabytes for the database
+#Why persistent storage: Database data survives pod restarts
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-pvc
+  namespace: keycloak
+  labels:
+    app: postgresql
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce  # Only one pod can write at a time
+  storageClassName: ebs-sc-gp3  # This will be created by EBS CSI driver
+  resources:
+    requests:
+      storage: 20Gi  # 20GB for database storage
