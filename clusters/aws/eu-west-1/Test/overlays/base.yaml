@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: Test-cluster-base
+  namespace: flux-system
+resources:
+  # Storage infrastructure (deploy first)
+  - ../../../../units/aws-ebs-csi-driver/overlays/Test
+
+  # Core infrastructure
+  - ../../../../units/cert-manager/overlays/Test
+  - ../../../../units/external-dns/overlays/Test
+  - ../../../../units/aws-load-balancer-controller/overlays/Test
+
+  # Identity and access (depends on storage)
+  - ../../../../units/keycloak/overlays/Test
